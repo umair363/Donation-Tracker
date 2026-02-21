@@ -187,6 +187,7 @@ function LoginScreen({ form, setForm, onSubmit, error }) {
       </div>
       <div style={{ width:440, background:C.surface, borderLeft:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"center" }}>
         <div style={{ width:"100%", padding:"0 48px" }}>
+          <img src="/logo.png" alt="Roshan Safar" style={{ width:90, marginBottom:16, mixBlendMode:"lighten", filter:"brightness(1.1)" }} />
           <h2 style={{ fontSize:30, fontWeight:900, color:C.text, letterSpacing:-1, marginBottom:6 }}>Welcome back</h2>
           <p style={{ color:C.textMuted, fontSize:14, fontWeight:500, marginBottom:34 }}>Sign in to continue</p>
           <form onSubmit={onSubmit} style={{ display:"flex", flexDirection:"column", gap:16 }}>
