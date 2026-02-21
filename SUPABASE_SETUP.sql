@@ -48,3 +48,9 @@ CREATE POLICY "Public Access" ON storage.objects FOR ALL USING (bucket_id = 'rec
 -- ============================================
 -- DONE! Your database is ready.
 -- ============================================
+
+-- ─── Run these if upgrading from previous version ────────────────────────────
+ALTER TABLE donations ADD COLUMN IF NOT EXISTS edit_log JSONB DEFAULT '[]';
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS edit_log JSONB DEFAULT '[]';
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS line_items JSONB DEFAULT NULL;
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT NULL;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase";
 
-const MEMBERS = ["Faiz", "Moeed", "Umair", "Hassan Ali", "Hassan Tariq", "Farah", "Hamza"];
+const MEMBERS = ["Faiz", "Moeed", "Umair", "Hassan Ali", "Hassaan", "Farah", "Hamza"];
 const PAYMENT_METHODS = ["Cash", "UBL", "Sadapay", "EasyPaisa", "Bank Transfer"];
 const EXPENSE_CATEGORIES = ["Food", "Transport", "Equipment", "Venue", "Marketing", "Miscellaneous"];
 const ADMIN_CREDS = { username: "admin", password: "admin123" };
@@ -83,6 +83,7 @@ export default function App() {
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
   const [loginError, setLoginError] = useState("");
   const [modal, setModal] = useState(null);
+  const [editItem, setEditItem] = useState(null);
   const [toast, setToast] = useState(null);
   const isMobile = useIsMobile();
 
@@ -135,6 +136,14 @@ export default function App() {
     await loadAll(); notify("Deleted");
   };
 
+  const editDonation = async (form) => {
+    const prev = editItem;
+    const log = [...(prev.edit_log || []), { at: new Date().toISOString(), prev: { amount: prev.amount, method: prev.method, reference: prev.reference }, next: { amount: Number(form.amount), method: form.method, reference: form.reference } }];
+    const { error } = await supabase.from("donations").update({ donor_name: form.donorName||null, amount: Number(form.amount), method: form.method, reference: form.reference, notes: form.notes||null, edit_log: log }).eq("id", prev.id);
+    if (error) { notify("Error updating", "error"); return; }
+    await loadAll(); setModal(null); setEditItem(null); notify("Donation updated!");
+  };
+
   const addExpense = async (form) => {
     let receipt_url = null;
     if (form.receiptFile) {
@@ -148,7 +157,8 @@ export default function App() {
     }
     const { error } = await supabase.from("expenses").insert([{
       description: form.description, amount: Number(form.amount),
-      category: form.category, receipt_url,
+      category: form.category, receipt_url, notes: form.notes||null,
+      line_items: form.line_items||null,
     }]);
     if (error) { notify("Error saving", "error"); return; }
     await loadAll(); setModal(null); notify("Expense recorded!");
@@ -158,6 +168,21 @@ export default function App() {
     if (!confirm("Delete this expense?")) return;
     await supabase.from("expenses").delete().eq("id", id);
     await loadAll(); notify("Deleted");
+  };
+
+  const editExpense = async (form) => {
+    const prev = editItem;
+    const log = [...(prev.edit_log || []), { at: new Date().toISOString(), prev: { amount: prev.amount, description: prev.description }, next: { amount: Number(form.amount), description: form.description } }];
+    let receipt_url = prev.receipt_url;
+    if (form.receiptFile) {
+      const ext = form.receiptFile.name.split(".").pop();
+      const path = `${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("receipts").upload(path, form.receiptFile);
+      if (!upErr) { const { data } = supabase.storage.from("receipts").getPublicUrl(path); receipt_url = data.publicUrl; }
+    }
+    const { error } = await supabase.from("expenses").update({ description: form.description, amount: Number(form.amount), category: form.category, notes: form.notes||null, line_items: form.line_items||null, receipt_url, edit_log: log }).eq("id", prev.id);
+    if (error) { notify("Error updating", "error"); return; }
+    await loadAll(); setModal(null); setEditItem(null); notify("Expense updated!");
   };
 
   const updateGoal = async (newGoal) => {
@@ -202,8 +227,8 @@ export default function App() {
           <Header session={session} page={page} onAddDonation={()=>setModal("donation")} onAddExpense={()=>setModal("expense")} isMobile={isMobile} onLogout={handleLogout} />
           <div style={{ padding: isMobile ? "16px 14px" : "24px 28px", flex:1 }}>
             {page==="dashboard" && <Dashboard totalDonations={totalDonations} totalExpenses={totalExpenses} netBalance={netBalance} goalProgress={goalProgress} goal={goal} donations={donations} expenses={expenses} memberStats={memberStats} session={session} onEditGoal={()=>setModal("goal")} isMobile={isMobile} />}
-            {page==="donations" && <DonationsPage donations={donations} session={session} onDelete={deleteDonation} isMobile={isMobile} onExport={()=>exportCSV(donations.map(d=>({Date:fmtDate(d.created_at),Donor:d.donor_name||"Anonymous",Amount:d.amount,Method:d.method,Reference:d.reference,Notes:d.notes||""})),"donations.csv",["Date","Donor","Amount","Method","Reference","Notes"])} />}
-            {page==="expenses" && <ExpensesPage expenses={expenses} session={session} onDelete={deleteExpense} isMobile={isMobile} onExport={()=>exportCSV(expenses.map(e=>({Date:fmtDate(e.created_at),Description:e.description,Category:e.category,Amount:e.amount})),"expenses.csv",["Date","Description","Category","Amount"])} />}
+            {page==="donations" && <DonationsPage donations={donations} session={session} onDelete={deleteDonation} onEdit={d=>{setEditItem(d);setModal("donation");}} isMobile={isMobile} onExport={()=>exportCSV(donations.map(d=>({Date:fmtDate(d.created_at),Donor:d.donor_name||"Anonymous",Amount:d.amount,Method:d.method,Reference:d.reference,Notes:d.notes||""})),"donations.csv",["Date","Donor","Amount","Method","Reference","Notes"])} />}
+            {page==="expenses" && <ExpensesPage expenses={expenses} session={session} onDelete={deleteExpense} onEdit={e=>{setEditItem(e);setModal("expense");}} isMobile={isMobile} onExport={()=>exportCSV(expenses.map(e=>({Date:fmtDate(e.created_at),Description:e.description,Category:e.category,Amount:e.amount})),"expenses.csv",["Date","Description","Category","Amount"])} />}
             {page==="leaderboard" && <LeaderboardPage memberStats={memberStats} totalDonations={totalDonations} />}
           </div>
         </main>
@@ -212,8 +237,8 @@ export default function App() {
       {/* Mobile bottom nav */}
       {isMobile && <BottomNav session={session} page={page} setPage={setPage} onAddDonation={()=>setModal("donation")} onAddExpense={()=>setModal("expense")} />}
 
-      {modal==="donation" && <DonationModal onClose={()=>setModal(null)} onSave={addDonation} isMobile={isMobile} />}
-      {modal==="expense" && <ExpenseModal onClose={()=>setModal(null)} onSave={addExpense} isMobile={isMobile} />}
+      {modal==="donation" && <DonationModal onClose={()=>{setModal(null);setEditItem(null);}} onSave={editItem?editDonation:addDonation} isMobile={isMobile} existing={editItem} />}
+      {modal==="expense" && <ExpenseModal onClose={()=>{setModal(null);setEditItem(null);}} onSave={editItem?editExpense:addExpense} isMobile={isMobile} existing={editItem} />}
       {modal==="goal" && <GoalModal currentGoal={goal} onClose={()=>setModal(null)} onSave={updateGoal} />}
       <style>{css}</style>
     </div>
@@ -469,24 +494,26 @@ function Dashboard({ totalDonations, totalExpenses, netBalance, goalProgress, go
         </div>
       )}
 
-      {/* Recent activity */}
-      <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding: isMobile?"16px":"20px 22px" }}>
-        <p style={cardT}>Recent Activity</p>
-        {recent.length===0?<p style={{ color:C.textDim, fontSize:14, marginTop:10 }}>No activity yet</p>:recent.map(item=>(
-          <div key={item.id} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
-            <div style={{ width:36, height:36, borderRadius:10, background:item._t==="d"?`${C.green}18`:`${C.orange}18`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{item._t==="d"?"💚":"🧡"}</div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ color:C.text, fontSize:13, fontWeight:600, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
-                {item._t==="d"?`${item.reference} · ${item.method}`:`${item.category} · ${item.description}`}
+      {/* Recent activity — admin only */}
+      {session.role==="admin" && (
+        <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding: isMobile?"16px":"20px 22px" }}>
+          <p style={cardT}>Recent Activity</p>
+          {recent.length===0?<p style={{ color:C.textDim, fontSize:14, marginTop:10 }}>No activity yet</p>:recent.map(item=>(
+            <div key={item.id} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+              <div style={{ width:36, height:36, borderRadius:10, background:item._t==="d"?`${C.green}18`:`${C.orange}18`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{item._t==="d"?"💚":"🧡"}</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ color:C.text, fontSize:13, fontWeight:600, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                  {item._t==="d"?`${item.reference} · ${item.method}`:`${item.category} · ${item.description}`}
+                </div>
+                <div style={{ color:C.textMuted, fontSize:11, marginTop:1 }}>{fmtDate(item.created_at)}</div>
               </div>
-              <div style={{ color:C.textMuted, fontSize:11, marginTop:1 }}>{fmtDate(item.created_at)}</div>
+              <div style={{ color:item._t==="d"?C.green:C.orange, fontWeight:700, fontSize:13, whiteSpace:"nowrap" }}>
+                {item._t==="d"?"+":"-"}{formatPKR(item.amount)}
+              </div>
             </div>
-            <div style={{ color:item._t==="d"?C.green:C.orange, fontWeight:700, fontSize:13, whiteSpace:"nowrap" }}>
-              {item._t==="d"?"+":"-"}{formatPKR(item.amount)}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Member overview */}
       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding: isMobile?"16px":"20px 22px" }}>
@@ -510,7 +537,7 @@ function Dashboard({ totalDonations, totalExpenses, netBalance, goalProgress, go
 }
 
 // ─── Donations Page ───────────────────────────────────────────────────────────
-function DonationsPage({ donations, session, onDelete, onExport, isMobile }) {
+function DonationsPage({ donations, session, onDelete, onEdit, onExport, isMobile }) {
   const [search, setSearch] = useState("");
   const [methodF, setMethodF] = useState("All");
   const [memberF, setMemberF] = useState("All");
@@ -556,7 +583,7 @@ function DonationsPage({ donations, session, onDelete, onExport, isMobile }) {
               <span style={{ background:`${C.green}12`, color:C.green, border:`1px solid ${C.green}28`, padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:600 }}>{d.method}</span>
               <span style={{ color:C.textMuted, fontSize:12 }}>by {d.reference}</span>
               {d.notes&&<span style={{ color:C.textDim, fontSize:11 }}>· {d.notes}</span>}
-              {session.role==="admin"&&<button className="rs-del" style={{ marginLeft:"auto", background:"none", border:`1px solid ${C.border}`, color:C.textDim, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:13, fontFamily:"'Barlow',sans-serif" }} onClick={()=>onDelete(d.id)}>×</button>}
+              {session.role==="admin"&&<div style={{display:"flex",gap:6,marginLeft:"auto"}}><button className="rs-edit" style={{ background:"none", border:`1px solid ${C.blue}30`, color:C.blue, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:12, fontFamily:"'Barlow',sans-serif", fontWeight:600 }} onClick={()=>onEdit(d)}>Edit</button><button className="rs-del" style={{ background:"none", border:`1px solid ${C.border}`, color:C.textDim, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:13, fontFamily:"'Barlow',sans-serif" }} onClick={()=>onDelete(d.id)}>×</button></div>}
             </div>
           </div>
         ))}
@@ -599,7 +626,7 @@ function DonationsPage({ donations, session, onDelete, onExport, isMobile }) {
                 <td style={td}><span style={{ background:`${C.green}12`, color:C.green, border:`1px solid ${C.green}28`, padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:600 }}>{d.method}</span></td>
                 <td style={{ ...td, fontWeight:600 }}>{d.reference}</td>
                 <td style={{ ...td, color:C.textMuted, fontSize:12 }}>{d.notes||"—"}</td>
-                {session.role==="admin"&&<td style={td}><button className="rs-del" style={{ background:"none", border:`1px solid ${C.border}`, color:C.textDim, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:13, fontFamily:"'Barlow',sans-serif" }} onClick={()=>onDelete(d.id)}>×</button></td>}
+                {session.role==="admin"&&<td style={td}><div style={{display:"flex",gap:6}}><button className="rs-edit" style={{ background:"none", border:`1px solid ${C.blue}30`, color:C.blue, borderRadius:6, padding:"4px 8px", cursor:"pointer", fontSize:12, fontFamily:"'Barlow',sans-serif", fontWeight:600 }} onClick={()=>onEdit(d)}>Edit</button><button className="rs-del" style={{ background:"none", border:`1px solid ${C.border}`, color:C.textDim, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:13, fontFamily:"'Barlow',sans-serif" }} onClick={()=>onDelete(d.id)}>×</button></div></td>}
               </tr>
             ))}
           </tbody>
@@ -610,7 +637,7 @@ function DonationsPage({ donations, session, onDelete, onExport, isMobile }) {
 }
 
 // ─── Expenses Page ────────────────────────────────────────────────────────────
-function ExpensesPage({ expenses, session, onDelete, onExport, isMobile }) {
+function ExpensesPage({ expenses, session, onDelete, onEdit, onExport, isMobile }) {
   const [catF, setCatF] = useState("All");
   const filtered = expenses.filter(e=>catF==="All"||e.category===catF);
   const total = filtered.reduce((s,e)=>s+Number(e.amount),0);
@@ -639,7 +666,7 @@ function ExpensesPage({ expenses, session, onDelete, onExport, isMobile }) {
             <div style={{ display:"flex", gap:8, alignItems:"center" }}>
               <span style={{ background:`${C.blue}12`, color:C.blue, border:`1px solid ${C.blue}28`, padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:600 }}>{e.category}</span>
               {e.receipt_url&&<a href={e.receipt_url} target="_blank" rel="noopener noreferrer" style={{ color:C.blue, fontSize:12, fontWeight:600 }}>View Receipt ↗</a>}
-              {session.role==="admin"&&<button className="rs-del" style={{ marginLeft:"auto", background:"none", border:`1px solid ${C.border}`, color:C.textDim, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:13, fontFamily:"'Barlow',sans-serif" }} onClick={()=>onDelete(e.id)}>×</button>}
+              {session.role==="admin"&&<div style={{display:"flex",gap:6,marginLeft:"auto"}}><button className="rs-edit" style={{ background:"none", border:`1px solid ${C.blue}30`, color:C.blue, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:12, fontFamily:"'Barlow',sans-serif", fontWeight:600 }} onClick={()=>onEdit(e)}>Edit</button><button className="rs-del" style={{ background:"none", border:`1px solid ${C.border}`, color:C.textDim, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:13, fontFamily:"'Barlow',sans-serif" }} onClick={()=>onDelete(e.id)}>×</button></div>}
             </div>
           </div>
         ))}
@@ -675,7 +702,7 @@ function ExpensesPage({ expenses, session, onDelete, onExport, isMobile }) {
                 <td style={td}><span style={{ background:`${C.blue}12`, color:C.blue, border:`1px solid ${C.blue}28`, padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:600 }}>{e.category}</span></td>
                 <td style={{ ...td, color:C.orange, fontWeight:700 }}>{formatPKR(e.amount)}</td>
                 <td style={td}>{e.receipt_url?<a href={e.receipt_url} target="_blank" rel="noopener noreferrer" style={{ color:C.blue, fontSize:12, fontWeight:600 }}>View ↗</a>:<span style={{ color:C.textDim }}>—</span>}</td>
-                {session.role==="admin"&&<td style={td}><button className="rs-del" style={{ background:"none", border:`1px solid ${C.border}`, color:C.textDim, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:13, fontFamily:"'Barlow',sans-serif" }} onClick={()=>onDelete(e.id)}>×</button></td>}
+                {session.role==="admin"&&<td style={td}><div style={{display:"flex",gap:6}}><button className="rs-edit" style={{ background:"none", border:`1px solid ${C.blue}30`, color:C.blue, borderRadius:6, padding:"4px 8px", cursor:"pointer", fontSize:12, fontFamily:"'Barlow',sans-serif", fontWeight:600 }} onClick={()=>onEdit(e)}>Edit</button><button className="rs-del" style={{ background:"none", border:`1px solid ${C.border}`, color:C.textDim, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:13, fontFamily:"'Barlow',sans-serif" }} onClick={()=>onDelete(e.id)}>×</button></div></td>}
               </tr>
             ))}
           </tbody>
@@ -720,18 +747,24 @@ function LeaderboardPage({ memberStats, totalDonations }) {
 }
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
-function DonationModal({ onClose, onSave, isMobile }) {
-  const [form, setForm] = useState({ donorName:"", amount:"", method:"Cash", reference:MEMBERS[0], notes:"" });
+function DonationModal({ onClose, onSave, isMobile, existing }) {
+  const [form, setForm] = useState(existing ? {
+    donorName: existing.donor_name||"", amount: String(existing.amount),
+    method: existing.method, reference: existing.reference, notes: existing.notes||""
+  } : { donorName:"", amount:"", method:"Cash", reference:MEMBERS[0], notes:"" });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState({});
+  const isEdit = !!existing;
+
   const submit = async () => {
     const e = {};
     if (!form.amount||isNaN(form.amount)||Number(form.amount)<=0) e.amount="Enter a valid amount";
     if (Object.keys(e).length) { setErr(e); return; }
     setSaving(true); await onSave(form); setSaving(false);
   };
+
   return (
-    <Modal title="Record Donation" accent={C.green} onClose={onClose} isMobile={isMobile}>
+    <Modal title={isEdit?"Edit Donation":"Record Donation"} accent={C.green} onClose={onClose} isMobile={isMobile}>
       <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"1fr 1fr", gap:14 }}>
         <MF label="Donor Name (optional)"><input style={{ ...inp, fontSize: isMobile?16:14 }} value={form.donorName} onChange={e=>setForm({...form,donorName:e.target.value})} placeholder="Anonymous" className="rs-input" /></MF>
         <MF label="Amount (PKR) *" error={err.amount}><input style={{ ...inp, fontSize: isMobile?16:14, ...(err.amount?{borderColor:C.red}:{}) }} type="number" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})} placeholder="0" className="rs-input" /></MF>
@@ -739,43 +772,132 @@ function DonationModal({ onClose, onSave, isMobile }) {
         <MF label="Collected By"><select style={{ ...sel, fontSize: isMobile?16:14, width:"100%" }} value={form.reference} onChange={e=>setForm({...form,reference:e.target.value})} className="rs-select">{MEMBERS.map(m=><option key={m}>{m}</option>)}</select></MF>
         <MF label="Notes" full><textarea style={{ ...inp, height:70, resize:"vertical", fontSize: isMobile?16:14 }} value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Optional..." className="rs-input" /></MF>
       </div>
-      <MFoot onClose={onClose} onSave={submit} saving={saving} label="Save Donation" accent={C.green} />
+      {/* Audit log for edits */}
+      {isEdit && existing.edit_log && existing.edit_log.length > 0 && (
+        <div style={{ marginTop:18, borderTop:`1px solid ${C.border}`, paddingTop:14 }}>
+          <p style={{ color:C.textMuted, fontSize:10, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:10 }}>Edit History</p>
+          {existing.edit_log.map((log, i) => (
+            <div key={i} style={{ background:C.bg, borderRadius:8, padding:"10px 12px", marginBottom:6, fontSize:12 }}>
+              <div style={{ color:C.textMuted, marginBottom:4 }}>{new Date(log.at).toLocaleString("en-PK")}</div>
+              <div style={{ color:C.text }}>Amount: <span style={{ color:C.orange }}>{formatPKR(log.prev.amount)}</span> → <span style={{ color:C.green }}>{formatPKR(log.next.amount)}</span></div>
+              {log.prev.method !== log.next.method && <div style={{ color:C.text }}>Method: <span style={{ color:C.orange }}>{log.prev.method}</span> → <span style={{ color:C.green }}>{log.next.method}</span></div>}
+              {log.prev.reference !== log.next.reference && <div style={{ color:C.text }}>Collector: <span style={{ color:C.orange }}>{log.prev.reference}</span> → <span style={{ color:C.green }}>{log.next.reference}</span></div>}
+            </div>
+          ))}
+        </div>
+      )}
+      <MFoot onClose={onClose} onSave={submit} saving={saving} label={isEdit?"Update Donation":"Save Donation"} accent={C.green} />
     </Modal>
   );
 }
 
-function ExpenseModal({ onClose, onSave, isMobile }) {
-  const [form, setForm] = useState({ description:"", amount:"", category:"Miscellaneous", receiptFile:null });
+function ExpenseModal({ onClose, onSave, isMobile, existing }) {
+  const initItems = existing?.line_items?.length ? existing.line_items : [{ name:"", qty:"1", price:"" }];
+  const [title, setTitle] = useState(existing?.description||"");
+  const [category, setCategory] = useState(existing?.category||"Miscellaneous");
+  const [notes, setNotes] = useState(existing?.notes||"");
+  const [items, setItems] = useState(initItems);
   const [preview, setPreview] = useState(null);
+  const [receiptFile, setReceiptFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState({});
+  const isEdit = !!existing;
+
+  const total = items.reduce((s, it) => s + (Number(it.qty)||1) * (Number(it.price)||0), 0);
+
+  const updateItem = (i, field, val) => {
+    const next = [...items]; next[i] = {...next[i], [field]: val}; setItems(next);
+  };
+  const addItem = () => setItems(p => [...p, { name:"", qty:"1", price:"" }]);
+  const removeItem = (i) => setItems(p => p.filter((_,idx) => idx!==i));
+
   const handleFile = e => {
     const f = e.target.files[0]; if (!f) return;
-    setForm(p=>({...p,receiptFile:f}));
+    setReceiptFile(f);
     const r = new FileReader(); r.onload = ev=>setPreview(ev.target.result); r.readAsDataURL(f);
   };
+
   const submit = async () => {
     const e = {};
-    if (!form.description.trim()) e.description="Description required";
-    if (!form.amount||isNaN(form.amount)||Number(form.amount)<=0) e.amount="Enter a valid amount";
+    if (!title.trim()) e.title = "Title required";
+    if (total <= 0) e.items = "Add at least one item with a price";
     if (Object.keys(e).length) { setErr(e); return; }
-    setSaving(true); await onSave(form); setSaving(false);
+    setSaving(true);
+    await onSave({ description: title, amount: total, category, notes, line_items: items, receiptFile });
+    setSaving(false);
   };
+
   return (
-    <Modal title="Record Expense" accent={C.orange} onClose={onClose} isMobile={isMobile}>
-      <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"1fr 1fr", gap:14 }}>
-        <MF label="Description *" error={err.description} full><input style={{ ...inp, fontSize: isMobile?16:14, ...(err.description?{borderColor:C.red}:{}) }} value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="What was this for?" className="rs-input" /></MF>
-        <MF label="Amount (PKR) *" error={err.amount}><input style={{ ...inp, fontSize: isMobile?16:14, ...(err.amount?{borderColor:C.red}:{}) }} type="number" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})} placeholder="0" className="rs-input" /></MF>
-        <MF label="Category"><select style={{ ...sel, fontSize: isMobile?16:14, width:"100%" }} value={form.category} onChange={e=>setForm({...form,category:e.target.value})} className="rs-select">{EXPENSE_CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></MF>
-        <MF label="Receipt (optional)" full>
-          <label style={{ border:`2px dashed ${C.border}`, borderRadius:10, padding:18, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", minHeight:82 }} className="rs-upload">
-            {preview?<img src={preview} alt="receipt" style={{ maxHeight:90, maxWidth:"100%", borderRadius:8 }} />
-              :<div style={{ textAlign:"center", color:C.textMuted }}><div style={{ fontSize:22, marginBottom:4 }}>↑</div><div style={{ fontSize:12, fontWeight:600 }}>Tap to upload receipt</div></div>}
-            <input type="file" accept="image/*,application/pdf" style={{ display:"none" }} onChange={handleFile} />
-          </label>
+    <Modal title={isEdit?"Edit Expense":"Record Expense"} accent={C.orange} onClose={onClose} isMobile={isMobile}>
+      {/* Title + Category */}
+      <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"1fr 1fr", gap:14, marginBottom:14 }}>
+        <MF label="Expense Title *" error={err.title} full>
+          <input style={{ ...inp, fontSize: isMobile?16:14, ...(err.title?{borderColor:C.red}:{}) }} value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Ration Drive, Event Setup..." className="rs-input" />
+        </MF>
+        <MF label="Category">
+          <select style={{ ...sel, fontSize: isMobile?16:14, width:"100%" }} value={category} onChange={e=>setCategory(e.target.value)} className="rs-select">
+            {EXPENSE_CATEGORIES.map(c=><option key={c}>{c}</option>)}
+          </select>
         </MF>
       </div>
-      <MFoot onClose={onClose} onSave={submit} saving={saving} label="Save Expense" accent={C.orange} />
+
+      {/* Line items */}
+      <div style={{ marginBottom:14 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+          <p style={{ color:C.textMuted, fontSize:10, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase" }}>Line Items</p>
+          {err.items && <span style={{ color:C.red, fontSize:11 }}>{err.items}</span>}
+        </div>
+        {/* Header row */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 56px 90px 32px", gap:6, marginBottom:6 }}>
+          {["Item","Qty","Price (PKR)",""].map(h=><div key={h} style={{ color:C.textDim, fontSize:10, fontWeight:700, letterSpacing:1, textTransform:"uppercase", padding:"0 4px" }}>{h}</div>)}
+        </div>
+        {items.map((it, i) => (
+          <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 56px 90px 32px", gap:6, marginBottom:6, alignItems:"center" }}>
+            <input style={{ ...inp, fontSize: isMobile?16:13, padding:"9px 12px" }} value={it.name} onChange={e=>updateItem(i,"name",e.target.value)} placeholder="Item name" className="rs-input" />
+            <input style={{ ...inp, fontSize: isMobile?16:13, padding:"9px 8px", textAlign:"center" }} type="number" min="1" value={it.qty} onChange={e=>updateItem(i,"qty",e.target.value)} className="rs-input" />
+            <input style={{ ...inp, fontSize: isMobile?16:13, padding:"9px 10px" }} type="number" value={it.price} onChange={e=>updateItem(i,"price",e.target.value)} placeholder="0" className="rs-input" />
+            <button onClick={()=>removeItem(i)} disabled={items.length===1} style={{ background:"none", border:`1px solid ${C.border}`, color:C.textDim, borderRadius:7, height:36, width:32, cursor:"pointer", fontSize:15, display:"flex", alignItems:"center", justifyContent:"center", opacity: items.length===1?0.3:1 }} className="rs-del">×</button>
+          </div>
+        ))}
+        <button onClick={addItem} style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:`1px dashed ${C.border}`, color:C.textMuted, borderRadius:9, padding:"9px 16px", cursor:"pointer", fontSize:13, fontWeight:600, fontFamily:"'Barlow',sans-serif", width:"100%", justifyContent:"center", marginTop:4 }} className="rs-sm-btn">
+          + Add Item
+        </button>
+        {/* Total */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background:`${C.orange}10`, border:`1px solid ${C.orange}25`, borderRadius:9, padding:"10px 14px", marginTop:10 }}>
+          <span style={{ color:C.textMuted, fontSize:12, fontWeight:700, letterSpacing:1, textTransform:"uppercase" }}>Total</span>
+          <span style={{ color:C.orange, fontSize:18, fontWeight:800 }}>{formatPKR(total)}</span>
+        </div>
+      </div>
+
+      {/* Notes */}
+      <MF label="Notes (optional)">
+        <textarea style={{ ...inp, height:60, resize:"vertical", fontSize: isMobile?16:14 }} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Any extra details..." className="rs-input" />
+      </MF>
+
+      {/* Receipt upload */}
+      <MF label="Receipt (optional)" full>
+        <label style={{ border:`2px dashed ${C.border}`, borderRadius:10, padding:14, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", minHeight:70, marginTop:8 }} className="rs-upload">
+          {preview ? <img src={preview} alt="receipt" style={{ maxHeight:80, maxWidth:"100%", borderRadius:8 }} />
+            : <div style={{ textAlign:"center", color:C.textMuted }}><div style={{ fontSize:20, marginBottom:3 }}>↑</div><div style={{ fontSize:12, fontWeight:600 }}>Upload receipt</div></div>}
+          <input type="file" accept="image/*,application/pdf" style={{ display:"none" }} onChange={handleFile} />
+        </label>
+      </MF>
+
+      {/* Edit history */}
+      {isEdit && existing.edit_log && existing.edit_log.length > 0 && (
+        <div style={{ marginTop:16, borderTop:`1px solid ${C.border}`, paddingTop:14 }}>
+          <p style={{ color:C.textMuted, fontSize:10, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:10 }}>Edit History</p>
+          {existing.edit_log.map((log, i) => (
+            <div key={i} style={{ background:C.bg, borderRadius:8, padding:"10px 12px", marginBottom:6, fontSize:12 }}>
+              <div style={{ color:C.textMuted, marginBottom:4 }}>{new Date(log.at).toLocaleString("en-PK")}</div>
+              <div style={{ color:C.text }}>Amount: <span style={{ color:C.orange }}>{formatPKR(log.prev.amount)}</span> → <span style={{ color:C.green }}>{formatPKR(log.next.amount)}</span></div>
+              {log.prev.description !== log.next.description && <div style={{ color:C.text }}>Title: <span style={{ color:C.orange }}>{log.prev.description}</span> → <span style={{ color:C.green }}>{log.next.description}</span></div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <MFoot onClose={onClose} onSave={submit} saving={saving} label={isEdit?"Update Expense":"Save Expense"} accent={C.orange} />
     </Modal>
   );
 }
@@ -851,6 +973,7 @@ const css = `
   .rs-tr:hover { background:${C.surface} !important; }
   .rs-lb:hover { transform:translateX(4px); }
   .rs-del:hover { border-color:${C.red}60 !important; color:${C.red} !important; }
+  .rs-edit:hover { background:${C.blue}15 !important; border-color:${C.blue} !important; }
   .rs-upload:hover { border-color:${C.blue} !important; }
   .rs-xbtn:hover { border-color:${C.red}60 !important; color:${C.red} !important; }
   .rs-sm-btn:hover { border-color:${C.borderHover} !important; color:${C.text} !important; }
