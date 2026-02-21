@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase";
 
-const MEMBERS = ["Faiz", "Moeed", "Umair", "Hassan Ali", "Hassan Tariq", "Farah", "Hamza"];
+const MEMBERS = ["Faiz", "Moeed", "Umair", "Hassan Ali", "Hassaan Tariq", "Farah", "Hamza","Member"];
 const PAYMENT_METHODS = ["Cash", "UBL", "Sadapay", "EasyPaisa", "Bank Transfer"];
 const EXPENSE_CATEGORIES = ["Food", "Transport", "Equipment", "Venue", "Marketing", "Miscellaneous"];
 
