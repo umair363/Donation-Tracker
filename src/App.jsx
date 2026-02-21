@@ -212,7 +212,7 @@ export default function App() {
   if (!session) return <LoginScreen form={loginForm} setForm={setLoginForm} onSubmit={handleLogin} error={loginError} isMobile={isMobile} />;
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", minHeight:"100vh", background:C.bg, fontFamily:"'Barlow',sans-serif", color:C.text }}>
+    <div style={{ display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", background:C.bg, fontFamily:"'Barlow',sans-serif", color:C.text }}>
       {toast && (
         <div style={{ position:"fixed", top:16, left:"50%", transform:"translateX(-50%)", zIndex:9999, background:toast.type==="success"?"#0A1F0A":"#1F0A0A", border:`1px solid ${toast.type==="success"?C.green:C.red}`, color:C.text, padding:"12px 20px", borderRadius:12, fontSize:13, fontWeight:600, boxShadow:"0 8px 32px rgba(0,0,0,0.7)", animation:"slideIn 0.3s ease", whiteSpace:"nowrap" }}>
           {toast.type==="success"?"✓":"✗"} {toast.msg}
@@ -223,9 +223,9 @@ export default function App() {
         {/* Desktop sidebar */}
         {!isMobile && <Sidebar session={session} page={page} setPage={setPage} onLogout={handleLogout} />}
 
-        <main style={{ flex:1, overflow:"auto", display:"flex", flexDirection:"column", paddingBottom: isMobile ? 80 : 0 }}>
+        <main style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
           <Header session={session} page={page} onAddDonation={()=>setModal("donation")} onAddExpense={()=>setModal("expense")} isMobile={isMobile} onLogout={handleLogout} />
-          <div style={{ padding: isMobile ? "16px 14px" : "24px 28px", flex:1 }}>
+          <div style={{ padding: isMobile ? "16px 14px" : "24px 28px", flex:1, overflowY:"auto", paddingBottom: isMobile ? 80 : 28 }}>
             {page==="dashboard" && <Dashboard totalDonations={totalDonations} totalExpenses={totalExpenses} netBalance={netBalance} goalProgress={goalProgress} goal={goal} donations={donations} expenses={expenses} memberStats={memberStats} session={session} onEditGoal={()=>setModal("goal")} isMobile={isMobile} />}
             {page==="donations" && <DonationsPage donations={donations} session={session} onDelete={deleteDonation} onEdit={d=>{setEditItem(d);setModal("donation");}} isMobile={isMobile} onExport={()=>exportCSV(donations.map(d=>({Date:fmtDate(d.created_at),Donor:d.donor_name||"Anonymous",Amount:d.amount,Method:d.method,Reference:d.reference,Notes:d.notes||""})),"donations.csv",["Date","Donor","Amount","Method","Reference","Notes"])} />}
             {page==="expenses" && <ExpensesPage expenses={expenses} session={session} onDelete={deleteExpense} onEdit={e=>{setEditItem(e);setModal("expense");}} isMobile={isMobile} onExport={()=>exportCSV(expenses.map(e=>({Date:fmtDate(e.created_at),Description:e.description,Category:e.category,Amount:e.amount})),"expenses.csv",["Date","Description","Category","Amount"])} />}
