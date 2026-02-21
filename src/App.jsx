@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase";
 
-const MEMBERS = ["Faiz", "Moeed", "Umair", "Hassan Ali", "Hassan Tariq", "Farah", "Hamza"];
+const MEMBERS = ["Faiz", "Moeed", "Umair", "Hassan Ali", "Hassaan Tariq", "Farah", "Hamza","Jaisha","Hadia"];
 const PAYMENT_METHODS = ["Cash", "UBL", "Sadapay", "EasyPaisa", "Bank Transfer"];
 const EXPENSE_CATEGORIES = ["Food", "Transport", "Equipment", "Venue", "Marketing", "Miscellaneous"];
 
@@ -202,7 +202,7 @@ function LoginScreen({ form, setForm, onSubmit, error }) {
             <button style={{ ...btnP(C.green), marginTop:4, padding:"13px" }} type="submit" className="rs-btn">Sign In →</button>
           </form>
           <p style={{ color:C.textDim, fontSize:11, marginTop:24, lineHeight:1.9, fontWeight:500 }}>
-            Admin: admin / admin123<br/>Members: firstname / member123
+            
           </p>
         </div>
       </div>
