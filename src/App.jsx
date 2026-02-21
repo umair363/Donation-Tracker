@@ -202,7 +202,7 @@ function LoginScreen({ form, setForm, onSubmit, error }) {
             <button style={{ ...btnP(C.green), marginTop:4, padding:"13px" }} type="submit" className="rs-btn">Sign In →</button>
           </form>
           <p style={{ color:C.textDim, fontSize:11, marginTop:24, lineHeight:1.9, fontWeight:500 }}>
-            Admin: admin / admin123<br/>Members: firstname / member123
+            
           </p>
         </div>
       </div>
