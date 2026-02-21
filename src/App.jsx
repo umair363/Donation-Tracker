@@ -29,7 +29,7 @@ function Particles() {
     size: Math.random() * 3 + 1,
     x: Math.random() * 100,
     y: Math.random() * 100,
-    duration: Math.random() * 20 + 10,
+    duration: Math.random() * 8 + 5,
     delay: Math.random() * 10,
     color: RS[Math.floor(Math.random() * RS.length)],
     opacity: Math.random() * 0.4 + 0.1,
@@ -224,115 +224,91 @@ export default function App() {
 function LoginScreen({ form, setForm, onSubmit, error, isMobile }) {
   const [showPass, setShowPass] = useState(false);
 
-  const LeftPanel = () => (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden", minHeight: isMobile ? "auto" : "100vh", padding: isMobile ? "52px 24px 36px" : 40 }}>
+  // Mobile: only the form panel, full screen, particles in bg
+  if (isMobile) return (
+    <div style={{ minHeight:"100vh", background:C.bg, fontFamily:"'Barlow',sans-serif", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden", padding:"32px 24px 48px" }}>
       <Particles />
-      {/* Glow orb */}
-      <div style={{ position:"absolute", bottom:-180, left:"50%", transform:"translateX(-50%)", width:700, height:700, borderRadius:"50%", background:`conic-gradient(from 180deg,${C.red},${C.orange},${C.yellow},${C.green},${C.blue},${C.purple},${C.red})`, opacity:0.06, filter:"blur(4px)", pointerEvents:"none" }} />
-      <div style={{ position:"relative", zIndex:1, textAlign:"center" }}>
-        {/* Transparent logo2 */}
-        <img
-          src="/logo2.png"
-          alt="Roshan Safar"
-          style={{ width: isMobile ? 180 : 240, mixBlendMode:"lighten", filter:"brightness(1.05) drop-shadow(0 0 40px rgba(245,197,24,0.15))", marginBottom: isMobile ? 20 : 28, display:"block", margin:"0 auto" }}
-          onError={e => { e.target.style.display="none"; }}
-        />
-        <div style={{ marginTop: isMobile ? 20 : 28 }}>
-          <h1 style={{ fontSize: isMobile ? 34 : 48, fontWeight:900, color:C.text, letterSpacing:-2, margin:"0 0 6px", lineHeight:1 }}>Roshan Safar</h1>
-          <p style={{ color:C.textMuted, fontSize: isMobile ? 11 : 12, letterSpacing:5, textTransform:"uppercase", fontWeight:600, marginBottom: isMobile ? 20 : 32 }}>Member Portal</p>
-          {/* Color bar */}
-          <div style={{ display:"flex", justifyContent:"center", gap:6 }}>
-            {RS.map((c,i) => <div key={i} style={{ width: isMobile ? 24 : 36, height:4, borderRadius:99, background:c, opacity:0.85 }} />)}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const RightPanel = () => (
-    <div style={{ width: isMobile ? "100%" : 420, background:C.surface, borderLeft: isMobile ? "none" : `1px solid ${C.border}`, borderTop: isMobile ? `1px solid ${C.border}` : "none", display:"flex", alignItems:"center", justifyContent:"center", padding: isMobile ? "32px 24px 48px" : "0 52px" }}>
-      <div style={{ width:"100%" }}>
-        {/* Logo2 centered on right panel */}
-        <img
-          src="/logo2.png"
-          alt=""
-          style={{ width:110, mixBlendMode:"lighten", marginBottom:28, opacity:0.85, display:"block", margin:"0 auto 28px" }}
-          onError={e => { e.target.style.display="none"; }}
-        />
-        <h2 style={{ fontSize: isMobile ? 26 : 28, fontWeight:900, color:C.text, letterSpacing:-0.8, marginBottom:4, textAlign:"center" }}>Welcome back</h2>
-        <p style={{ color:C.textMuted, fontSize:14, fontWeight:400, marginBottom:36, lineHeight:1.5, textAlign:"center" }}>Sign in to access the society portal</p>
-
-        <form onSubmit={onSubmit} style={{ display:"flex", flexDirection:"column", gap:18 }}>
-          {/* Username */}
+      <div style={{ position:"absolute", top:-150, left:"50%", transform:"translateX(-50%)", width:500, height:500, borderRadius:"50%", background:`conic-gradient(from 180deg,${C.red},${C.orange},${C.yellow},${C.green},${C.blue},${C.purple},${C.red})`, opacity:0.06, filter:"blur(4px)", pointerEvents:"none" }} />
+      <div style={{ position:"relative", zIndex:1, width:"100%", maxWidth:380 }}>
+        {/* Logo centered */}
+        <img src="/logo2.png" alt="Roshan Safar" style={{ width:160, mixBlendMode:"lighten", filter:"brightness(1.05)", display:"block", margin:"0 auto 20px" }} onError={e=>{e.target.style.display="none";}} />
+        <h2 style={{ fontSize:28, fontWeight:900, color:C.text, letterSpacing:-0.8, marginBottom:4, textAlign:"center" }}>Welcome back</h2>
+        <p style={{ color:C.textMuted, fontSize:14, fontWeight:400, marginBottom:32, lineHeight:1.5, textAlign:"center" }}>Sign in to access the society portal</p>
+        <form onSubmit={onSubmit} style={{ display:"flex", flexDirection:"column", gap:16 }}>
           <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
             <label style={{ color:C.textMuted, fontSize:11, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase" }}>Username</label>
-            <input
-              style={{ ...inp, fontSize: isMobile ? 16 : 14, padding:"13px 16px" }}
-              value={form.username}
-              onChange={e => setForm({...form, username:e.target.value})}
-              placeholder="Enter your username"
-              className="rs-input"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-            />
+            <input style={{ ...inp, fontSize:16, padding:"13px 16px" }} value={form.username} onChange={e=>setForm({...form, username:e.target.value})} placeholder="Enter your username" className="rs-input" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
           </div>
-
-          {/* Password - hidden label, show/hide toggle */}
           <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
             <label style={{ color:C.textMuted, fontSize:11, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase" }}>Password</label>
             <div style={{ position:"relative" }}>
-              <input
-                style={{ ...inp, fontSize: isMobile ? 16 : 14, padding:"13px 48px 13px 16px" }}
-                type={showPass ? "text" : "password"}
-                value={form.password}
-                onChange={e => setForm({...form, password:e.target.value})}
-                placeholder="Enter your password"
-                className="rs-input"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPass(p => !p)}
-                style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:C.textMuted, cursor:"pointer", fontSize:14, padding:4, fontFamily:"'Barlow',sans-serif" }}>
-                {showPass ? "Hide" : "Show"}
-              </button>
+              <input style={{ ...inp, fontSize:16, padding:"13px 48px 13px 16px" }} type={showPass?"text":"password"} value={form.password} onChange={e=>setForm({...form, password:e.target.value})} placeholder="Enter your password" className="rs-input" />
+              <button type="button" onClick={()=>setShowPass(p=>!p)} style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:C.textMuted, cursor:"pointer", fontSize:13, fontFamily:"'Barlow',sans-serif", fontWeight:600 }}>{showPass?"Hide":"Show"}</button>
             </div>
           </div>
-
           {error && (
             <div style={{ display:"flex", alignItems:"center", gap:8, background:"#1F0A0A", border:`1px solid ${C.red}30`, borderRadius:9, padding:"10px 14px" }}>
               <span style={{ color:C.red, fontSize:13 }}>⚠</span>
               <p style={{ color:"#f08080", fontSize:13, fontWeight:500 }}>{error}</p>
             </div>
           )}
-
-          <button style={{ ...btnP(C.green), padding: isMobile ? "15px" : "14px", fontSize:15, marginTop:4, borderRadius:11, letterSpacing:0.5 }} type="submit" className="rs-btn">
-            Sign In
-          </button>
+          <button style={{ ...btnP(C.green), padding:"15px", fontSize:15, marginTop:4, borderRadius:11 }} type="submit" className="rs-btn">Sign In</button>
         </form>
-
-        {/* Subtle divider line */}
-        <div style={{ marginTop:32, paddingTop:24, borderTop:`1px solid ${C.border}` }}>
-          <p style={{ color:C.textDim, fontSize:12, fontWeight:500, lineHeight:1.6 }}>
-            Contact your administrator if you're having trouble signing in.
-          </p>
+        <div style={{ marginTop:28, paddingTop:20, borderTop:`1px solid ${C.border}` }}>
+          <p style={{ color:C.textDim, fontSize:12, fontWeight:500, lineHeight:1.6, textAlign:"center" }}>Contact your administrator if you're having trouble signing in.</p>
         </div>
       </div>
-    </div>
-  );
-
-  if (isMobile) return (
-    <div style={{ minHeight:"100vh", background:C.bg, fontFamily:"'Barlow',sans-serif", display:"flex", flexDirection:"column", overflow:"hidden" }}>
-      <LeftPanel />
-      <RightPanel />
       <style>{css}</style>
     </div>
   );
 
+  // Desktop: left branding panel + right form panel
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:C.bg, fontFamily:"'Barlow',sans-serif" }}>
-      <LeftPanel />
-      <RightPanel />
+      {/* Left branding */}
+      <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden" }}>
+        <Particles />
+        <div style={{ position:"absolute", bottom:-180, left:"50%", transform:"translateX(-50%)", width:700, height:700, borderRadius:"50%", background:`conic-gradient(from 180deg,${C.red},${C.orange},${C.yellow},${C.green},${C.blue},${C.purple},${C.red})`, opacity:0.06, filter:"blur(4px)", pointerEvents:"none" }} />
+        <div style={{ position:"relative", zIndex:1, textAlign:"center", padding:40 }}>
+          <img src="/logo2.png" alt="Roshan Safar" style={{ width:240, mixBlendMode:"lighten", filter:"brightness(1.05) drop-shadow(0 0 40px rgba(245,197,24,0.15))", display:"block", margin:"0 auto 28px" }} onError={e=>{e.target.style.display="none";}} />
+          <h1 style={{ fontSize:48, fontWeight:900, color:C.text, letterSpacing:-2, margin:"0 0 6px", lineHeight:1 }}>Roshan Safar</h1>
+          <p style={{ color:C.textMuted, fontSize:12, letterSpacing:5, textTransform:"uppercase", fontWeight:600, marginBottom:32 }}>Member Portal</p>
+          <div style={{ display:"flex", justifyContent:"center", gap:6 }}>
+            {RS.map((c,i)=><div key={i} style={{ width:36, height:4, borderRadius:99, background:c, opacity:0.85 }} />)}
+          </div>
+        </div>
+      </div>
+      {/* Right form */}
+      <div style={{ width:420, background:C.surface, borderLeft:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 52px" }}>
+        <div style={{ width:"100%" }}>
+          <img src="/logo2.png" alt="" style={{ width:110, mixBlendMode:"lighten", opacity:0.85, display:"block", margin:"0 auto 28px" }} onError={e=>{e.target.style.display="none";}} />
+          <h2 style={{ fontSize:28, fontWeight:900, color:C.text, letterSpacing:-0.8, marginBottom:4, textAlign:"center" }}>Welcome back</h2>
+          <p style={{ color:C.textMuted, fontSize:14, fontWeight:400, marginBottom:36, lineHeight:1.5, textAlign:"center" }}>Sign in to access the society portal</p>
+          <form onSubmit={onSubmit} style={{ display:"flex", flexDirection:"column", gap:18 }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+              <label style={{ color:C.textMuted, fontSize:11, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase" }}>Username</label>
+              <input style={{ ...inp, padding:"13px 16px" }} value={form.username} onChange={e=>setForm({...form, username:e.target.value})} placeholder="Enter your username" className="rs-input" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+              <label style={{ color:C.textMuted, fontSize:11, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase" }}>Password</label>
+              <div style={{ position:"relative" }}>
+                <input style={{ ...inp, padding:"13px 48px 13px 16px" }} type={showPass?"text":"password"} value={form.password} onChange={e=>setForm({...form, password:e.target.value})} placeholder="Enter your password" className="rs-input" />
+                <button type="button" onClick={()=>setShowPass(p=>!p)} style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:C.textMuted, cursor:"pointer", fontSize:13, fontFamily:"'Barlow',sans-serif", fontWeight:600 }}>{showPass?"Hide":"Show"}</button>
+              </div>
+            </div>
+            {error && (
+              <div style={{ display:"flex", alignItems:"center", gap:8, background:"#1F0A0A", border:`1px solid ${C.red}30`, borderRadius:9, padding:"10px 14px" }}>
+                <span style={{ color:C.red, fontSize:13 }}>⚠</span>
+                <p style={{ color:"#f08080", fontSize:13, fontWeight:500 }}>{error}</p>
+              </div>
+            )}
+            <button style={{ ...btnP(C.green), padding:"14px", fontSize:15, borderRadius:11 }} type="submit" className="rs-btn">Sign In</button>
+          </form>
+          <div style={{ marginTop:32, paddingTop:24, borderTop:`1px solid ${C.border}` }}>
+            <p style={{ color:C.textDim, fontSize:12, fontWeight:500, lineHeight:1.6, textAlign:"center" }}>Contact your administrator if you're having trouble signing in.</p>
+          </div>
+        </div>
+      </div>
       <style>{css}</style>
     </div>
   );
