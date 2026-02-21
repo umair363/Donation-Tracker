@@ -252,15 +252,15 @@ function LoginScreen({ form, setForm, onSubmit, error, isMobile }) {
   const RightPanel = () => (
     <div style={{ width: isMobile ? "100%" : 420, background:C.surface, borderLeft: isMobile ? "none" : `1px solid ${C.border}`, borderTop: isMobile ? `1px solid ${C.border}` : "none", display:"flex", alignItems:"center", justifyContent:"center", padding: isMobile ? "32px 24px 48px" : "0 52px" }}>
       <div style={{ width:"100%" }}>
-        {/* Small logo2 on right panel */}
+        {/* Logo2 centered on right panel */}
         <img
           src="/logo2.png"
           alt=""
-          style={{ width:44, mixBlendMode:"lighten", marginBottom:28, opacity:0.7 }}
+          style={{ width:110, mixBlendMode:"lighten", marginBottom:28, opacity:0.85, display:"block", margin:"0 auto 28px" }}
           onError={e => { e.target.style.display="none"; }}
         />
-        <h2 style={{ fontSize: isMobile ? 26 : 28, fontWeight:900, color:C.text, letterSpacing:-0.8, marginBottom:4 }}>Welcome back</h2>
-        <p style={{ color:C.textMuted, fontSize:14, fontWeight:400, marginBottom:36, lineHeight:1.5 }}>Sign in to access the society portal</p>
+        <h2 style={{ fontSize: isMobile ? 26 : 28, fontWeight:900, color:C.text, letterSpacing:-0.8, marginBottom:4, textAlign:"center" }}>Welcome back</h2>
+        <p style={{ color:C.textMuted, fontSize:14, fontWeight:400, marginBottom:36, lineHeight:1.5, textAlign:"center" }}>Sign in to access the society portal</p>
 
         <form onSubmit={onSubmit} style={{ display:"flex", flexDirection:"column", gap:18 }}>
           {/* Username */}
